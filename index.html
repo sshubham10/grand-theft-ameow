@@ -222,14 +222,37 @@ function paw(a,step){
 }
 
 /* ---------- interactions ---------- */
-addEventListener('pointermove',e=>{px=e.clientX;py=e.clientY;if(mode==='lick'||mode==='goto'||mode==='eat'||busy)return;mode='follow';});
+let tStart=null,dragging=false,onCat=false;
+addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'){
+    if(!tStart)return;
+    if(!dragging&&Math.hypot(e.clientX-tStart.x,e.clientY-tStart.y)>10){
+      dragging=true;clearBowl();bub.classList.remove('on');
+      if(!busy){mode='follow';cat.classList.remove('licking');if(stopPurr){stopPurr();stopPurr=null;}}
+    }
+    if(!dragging)return;
+  }
+  px=e.clientX;py=e.clientY;
+  if(mode==='lick'||mode==='goto'||mode==='eat'||busy)return;mode='follow';
+});
 addEventListener('pointerdown',e=>{
   audio();
+  if(e.pointerType==='touch'){tStart={x:e.clientX,y:e.clientY};dragging=false;onCat=cat.contains(e.target);return;}
   if(cat.contains(e.target)||busy)return;
-  clearBowl();tx=e.clientX;ty=e.clientY;px=tx;py=ty;mode='goto';bub.classList.remove('on');
-  if(stopPurr){stopPurr();stopPurr=null;}cat.classList.remove('licking');
+  tapGo(e.clientX,e.clientY);
 });
-cat.addEventListener('pointerdown',e=>{e.stopPropagation();audio();touchCat();});
+function tapGo(cx,cy){
+  clearBowl();tx=cx;ty=cy;px=tx;py=ty;mode='goto';bub.classList.remove('on');
+  if(stopPurr){stopPurr();stopPurr=null;}cat.classList.remove('licking');
+}
+addEventListener('pointerup',e=>{
+  if(e.pointerType!=='touch'||!tStart)return;
+  const was=dragging,oc=onCat;tStart=null;dragging=false;onCat=false;
+  if(was||busy)return;
+  if(oc&&sc<1.3&&mode!=='lick')touchCat();else tapGo(e.clientX,e.clientY);
+});
+addEventListener('pointercancel',()=>{tStart=null;dragging=false;});
+cat.addEventListener('pointerdown',e=>{audio();if(e.pointerType==='touch')return;e.stopPropagation();touchCat();});
 
 function touchCat(){
   if(busy)return;
